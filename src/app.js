@@ -1,23 +1,20 @@
 const express = require("express");
 const {connectDB} = require("./config/database");
 const {User} = require("./models/user");
+const cookieParser = require("cookie-parser");
 const app  = express();
-
 //recieves the Json body and converts it into the javaScript object
 app.use(express.json());
-app.post("/signup", async(req, res)=>{
-    //Create the new instance of the user
-    const user = new User(req.body); 
-    
-    try{
-        //saving the user
-        await user.save();
-        res.send("User Added successfully!!");
-    }catch(err){
-        res.status(400).send("Error saving the user: ", err);
-    }
-    
-});
+app.use(cookieParser());
+
+const authRouter = require("./routes/auth");
+const profileRouter = require("./routes/profile");
+const requestsRouter = require("./routes/requests");
+
+app.use("/", authRouter);
+app.use("/", profileRouter);
+app.use("/", requestsRouter);
+
 
 //Get user by Email
 app.get("/user", async(req, res)=>{
@@ -56,14 +53,23 @@ app.delete("/user", async(req, res)=>{
     }
 });
 
-app.patch("/user", async(req, res)=>{
-    const userId = req.body.userId;
+app.patch("/user/:userId", async(req, res)=>{
+    const userId = req.params?.userId;
     const data = req.body;
+
+    
     try{
-        await User.findByIdAndUpdate({_id: userId}, data);
+        const ALLOWED_UPDATES = ["gender", "age", "skills"];
+    const isUpdateAllowed = Object.keys(data).every((k)=>{
+        ALLOWED_UPDATES.includes(k);
+    });
+    if(!isUpdateAllowed){
+        throw new Error("Update is not allowed");
+    }
+        await User.findByIdAndUpdate({_id: userId}, data, {returnDocument:"after", runValidators: true});
         res.send("user updated successfully");
     }catch(err){
-        res.status.apply(400).send("Something went wrong");
+        res.status(400).send("Something went wrong:" + err.message);
     }
 })
 connectDB()
