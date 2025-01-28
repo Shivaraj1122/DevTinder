@@ -5,6 +5,7 @@ const { userAuth } = require("../middleware/auth");
 const authRouter = express.Router();
 const cookieParser = require("cookie-parser");
 const User  = require("../models/user");
+const user = require("../models/user");
 
 authRouter.use(cookieParser());
 authRouter.post("/signup", async(req, res)=>{
